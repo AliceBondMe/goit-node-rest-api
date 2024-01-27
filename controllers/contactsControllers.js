@@ -1,5 +1,6 @@
 import contactsService from "../services/contactsServices.js";
 import HttpError from "../helpers/HttpError.js";
+import checkId from "../helpers/checkId.js";
 
 export const getAllContacts = async (req, res) => {
   const allContacts = await contactsService.listContacts();
@@ -9,6 +10,8 @@ export const getAllContacts = async (req, res) => {
 export const getOneContact = async (req, res, next) => {
   try {
     const id = req.params.id;
+    checkId(id);
+
     const contact = await contactsService.getContactById(id);
 
     if (!contact) throw HttpError(404);
@@ -22,6 +25,8 @@ export const getOneContact = async (req, res, next) => {
 export const deleteContact = async (req, res, next) => {
   try {
     const id = req.params.id;
+    checkId(id);
+
     const contact = await contactsService.removeContact(id);
 
     if (!contact) throw HttpError(404);
@@ -34,13 +39,7 @@ export const deleteContact = async (req, res, next) => {
 
 export const createContact = async (req, res, next) => {
   try {
-    const newContact = req.body;
-
-    const contactToAdd = await contactsService.addContact(
-      newContact.name,
-      newContact.email,
-      newContact.phone
-    );
+    const contactToAdd = await contactsService.addContact(req.body);
     res.status(201).json(contactToAdd);
   } catch (error) {
     next(error);
@@ -51,11 +50,29 @@ export const updateContact = async (req, res, next) => {
   try {
     const id = req.params.id;
     const updates = req.body;
+    checkId(id);
 
     if (Object.keys(updates).length === 0)
       throw HttpError(400, "Body must have at least one field");
 
     const updatedContact = await contactsService.changeContact(id, updates);
+    if (!updatedContact) throw HttpError(404);
+
+    res.status(200).json(updatedContact);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const updateFavoriteContact = async (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const updates = req.body;
+
+    const updatedContact = await contactsService.updateStatusContact(
+      id,
+      updates
+    );
     if (!updatedContact) throw HttpError(404);
 
     res.status(200).json(updatedContact);

@@ -9,9 +9,11 @@ import {
   logoutUser,
   refreshUser,
   changeSubscription,
+  changeAvatar,
 } from "../controllers/usersControllers.js";
 import validateBody from "../middlewares/validateBody.js";
 import authenticate from "../middlewares/authenticate.js";
+import upload from "../middlewares/upload.js";
 
 const usersRouter = express.Router();
 
@@ -28,6 +30,13 @@ usersRouter.patch(
   authenticate,
   validateBody(changeSubscriptionSchema),
   changeSubscription
+);
+
+usersRouter.patch(
+  "/avatars",
+  authenticate,
+  upload.single("avatarURL"),
+  changeAvatar
 );
 
 export default usersRouter;

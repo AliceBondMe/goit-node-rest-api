@@ -1,8 +1,12 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import "dotenv/config";
+import gravatar from "gravatar";
 import User from "../models/user.js";
 import HttpError from "../helpers/HttpError.js";
+import path from "path";
+import fs from "fs/promises";
+import Jimp from "jimp";
 
 const { SECRET_KEY } = process.env;
 
@@ -16,9 +20,12 @@ export const registerUser = async (req, res, next) => {
     const { password, ...otherUserData } = req.body;
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    const avatarURL = gravatar.url(email);
+
     const newUser = await User.create({
       password: hashedPassword,
       ...otherUserData,
+      avatarURL,
     });
 
     res.status(201).json({
@@ -70,7 +77,7 @@ export const loginUser = async (req, res, next) => {
   }
 };
 
-export const logoutUser = async (req, res) => {
+export const logoutUser = async (req, res, next) => {
   try {
     const { _id } = req.user;
     await User.findByIdAndUpdate(_id, { token: "" });
@@ -80,7 +87,7 @@ export const logoutUser = async (req, res) => {
   }
 };
 
-export const refreshUser = async (req, res) => {
+export const refreshUser = async (req, res, next) => {
   try {
     const { email, subscription } = req.user;
     res.status(200).json({ email, subscription });
@@ -89,7 +96,7 @@ export const refreshUser = async (req, res) => {
   }
 };
 
-export const changeSubscription = async (req, res) => {
+export const changeSubscription = async (req, res, next) => {
   try {
     const { _id } = req.user;
     const { subscription } = req.body;
@@ -98,6 +105,31 @@ export const changeSubscription = async (req, res) => {
     res
       .status(200)
       .json({ subscription, message: "Subscription successfully changed" });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const changeAvatar = async (req, res, next) => {
+  try {
+    const { _id } = req.user;
+
+    if (!req.file) throw HttpError(400, "Avatar file is required");
+
+    const { path: tempUpload, originalname } = req.file;
+    const newFilename = `${_id}_${originalname}`;
+    const resultUpload = path.resolve("public", "avatars", newFilename);
+
+    // Resize avatar to 250x250 using jimp
+    const avatar = await Jimp.read(tempUpload);
+    avatar.cover(250, 250).write(resultUpload);
+
+    // Remove the temporary uploaded file
+    await fs.unlink(tempUpload);
+
+    await User.findByIdAndUpdate(_id, { avatarURL: resultUpload });
+
+    res.status(200).json({ avatarURL: resultUpload });
   } catch (error) {
     next(error);
   }

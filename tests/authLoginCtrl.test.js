@@ -8,6 +8,7 @@ describe("Login Controller", () => {
     const testUser = {
       email: "test@example.com",
       password: "testpassword",
+      subscription: "starter",
     };
 
     // Sending a request to login test User
@@ -19,5 +20,9 @@ describe("Login Controller", () => {
 
     expect(response.body).toHaveProperty("user");
     expect(response.body.user).toHaveProperty("email", testUser.email);
+    expect(response.body.user).toHaveProperty(
+      "subscription",
+      testUser.subscription
+    );
   });
 });

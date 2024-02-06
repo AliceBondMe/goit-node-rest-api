@@ -7,7 +7,7 @@ import "dotenv/config";
 import contactsRouter from "./routes/contactsRouter.js";
 import usersRouter from "./routes/usersRouter.js";
 
-const app = express();
+export const app = express();
 
 const { DB_HOST } = process.env;
 

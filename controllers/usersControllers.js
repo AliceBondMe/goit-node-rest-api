@@ -7,6 +7,7 @@ import HttpError from "../helpers/HttpError.js";
 import path from "path";
 import fs from "fs/promises";
 import Jimp from "jimp";
+import { nanoid } from "nanoid";
 
 const { SECRET_KEY } = process.env;
 
@@ -22,17 +23,42 @@ export const registerUser = async (req, res, next) => {
 
     const avatarURL = gravatar.url(email);
 
+    const verificationToken = nanoid();
+
     const newUser = await User.create({
       password: hashedPassword,
       ...otherUserData,
       avatarURL,
+      verificationToken,
     });
+
+    //paused before sending email
 
     res.status(201).json({
       user: {
         email: newUser.email,
         subscription: newUser.subscription,
       },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const verifyUser = async (req, res, next) => {
+  try {
+    const { verificationToken } = req.params;
+    const user = await User.findOne({ verificationToken });
+
+    if (!user) throw HttpError(404, "User not found");
+
+    await User.findByIdAndUpdate(user._id, {
+      verificationToken: null,
+      verify: true,
+    });
+
+    res.status(200).json({
+      message: "Verification successful",
     });
   } catch (error) {
     next(error);

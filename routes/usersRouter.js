@@ -2,6 +2,7 @@ import express from "express";
 import {
   changeSubscriptionSchema,
   createUserSchema,
+  verificationSchema,
 } from "../schemas/usersSchemas.js";
 import {
   registerUser,
@@ -10,6 +11,8 @@ import {
   refreshUser,
   changeSubscription,
   changeAvatar,
+  verifyUser,
+  resendVerify,
 } from "../controllers/usersControllers.js";
 import validateBody from "../middlewares/validateBody.js";
 import authenticate from "../middlewares/authenticate.js";
@@ -19,7 +22,9 @@ const usersRouter = express.Router();
 
 usersRouter.post("/register", validateBody(createUserSchema), registerUser);
 
-usersRouter.get("verify/:verificationToken", verifyUser);
+usersRouter.get("/verify/:verificationToken", verifyUser);
+
+usersRouter.post("/verify", validateBody(verificationSchema), resendVerify);
 
 usersRouter.post("/login", validateBody(createUserSchema), loginUser);
 

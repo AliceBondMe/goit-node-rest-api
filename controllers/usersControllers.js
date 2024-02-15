@@ -8,8 +8,10 @@ import path from "path";
 import fs from "fs/promises";
 import Jimp from "jimp";
 import { nanoid } from "nanoid";
+import sendEmail from "../helpers/sendEmail.js";
 
 const { SECRET_KEY } = process.env;
+const { BASE_URL } = process.env;
 
 export const registerUser = async (req, res, next) => {
   try {
@@ -32,7 +34,15 @@ export const registerUser = async (req, res, next) => {
       verificationToken,
     });
 
-    //paused before sending email
+    const verificationEmail = {
+      to: [email],
+      subject: "Verify your email",
+      html: `<h1>Please follow the link below</h1><br/>
+      <a target="blank" href="${BASE_URL}/api/users/verify/${verificationToken}" style="color:red; font-size: 28px">Click to verify email</a>
+      `,
+    };
+
+    await sendEmail(verificationEmail);
 
     res.status(201).json({
       user: {
@@ -48,6 +58,7 @@ export const registerUser = async (req, res, next) => {
 export const verifyUser = async (req, res, next) => {
   try {
     const { verificationToken } = req.params;
+
     const user = await User.findOne({ verificationToken });
 
     if (!user) throw HttpError(404, "User not found");
@@ -65,6 +76,34 @@ export const verifyUser = async (req, res, next) => {
   }
 };
 
+export const resendVerify = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) throw HttpError(404, "User not found");
+
+    if (user.verify)
+      throw HttpError(400, "Verification has already been passed");
+
+    const verificationEmail = {
+      to: [email],
+      subject: "Verify your email",
+      html: `<h1>Please follow the link below</h1><br/>
+      <a target="blank" href="${BASE_URL}/api/users/verify/${user.verificationToken}" style="color:red; font-size: 28px">Click to verify email</a>
+      `,
+    };
+
+    await sendEmail(verificationEmail);
+
+    res.status(200).json({
+      message: "Verification email sent",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const loginUser = async (req, res, next) => {
   try {
     const { password, email } = req.body;
@@ -72,6 +111,7 @@ export const loginUser = async (req, res, next) => {
     const userEntering = await User.findOne({ email });
 
     if (!userEntering) throw HttpError(401, "Email or password is wrong");
+    if (!userEntering.verify) throw HttpError(401);
 
     const passwordIsValid = await bcrypt.compare(
       password,

@@ -12,6 +12,15 @@ export const createUserSchema = Joi.object({
   subscription: Joi.string().valid(...SUBSCRIPTION_OPTIONS),
 });
 
+export const verificationSchema = Joi.object({
+  email: Joi.string()
+    .email({
+      minDomainSegments: 2,
+      tlds: { allow: ["com", "net"] },
+    })
+    .required(),
+});
+
 export const changeSubscriptionSchema = Joi.object({
   subscription: Joi.string()
     .valid(...SUBSCRIPTION_OPTIONS)
